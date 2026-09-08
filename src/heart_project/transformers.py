@@ -43,9 +43,7 @@ class HeartFeatureEngineer(TransformerMixin, BaseEstimator):
         transformed = X.copy()
 
         for column in self.numeric_input:
-            transformed[column] = pd.to_numeric(
-                transformed[column], errors="coerce"
-            ).astype(float)
+            transformed[column] = pd.to_numeric(transformed[column], errors="coerce").astype(float)
 
         for column in self.binary_input:
             mapped = transformed[column].map({False: 0.0, True: 1.0})
@@ -56,12 +54,8 @@ class HeartFeatureEngineer(TransformerMixin, BaseEstimator):
             transformed[column] = values.astype(object).where(values.notna(), np.nan)
 
         transformed["age_squared"] = transformed["age"] ** 2
-        transformed["old_peak_slope_interaction"] = (
-            transformed["old_peak"] * transformed["slope"]
-        )
-        transformed["max_hr_old_peak_interaction"] = (
-            transformed["max_hr"] * transformed["old_peak"]
-        )
+        transformed["old_peak_slope_interaction"] = transformed["old_peak"] * transformed["slope"]
+        transformed["max_hr_old_peak_interaction"] = transformed["max_hr"] * transformed["old_peak"]
 
         exang_label = transformed["exang"].map({0.0: "no", 1.0: "yes"})
         valid_interaction = transformed["chest_pain"].notna() & exang_label.notna()
@@ -74,9 +68,7 @@ class HeartFeatureEngineer(TransformerMixin, BaseEstimator):
         transformed["chest_pain_exang"] = chest_pain_exang
         return transformed
 
-    def get_feature_names_out(
-        self, input_features: object = None
-    ) -> np.ndarray:
+    def get_feature_names_out(self, input_features: object = None) -> np.ndarray:
         """Expose base and derived names for downstream transformers."""
         check_is_fitted(self, "feature_names_in_")
         base_features = (
