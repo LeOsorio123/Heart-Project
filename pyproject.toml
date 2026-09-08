@@ -9,7 +9,9 @@ requires-python = ">=3.12"
 readme = "README.md"
 
 dependencies = [
-
+    "numpy>=2.5.2",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.1",
 ]
 
 [project.urls]
@@ -24,6 +26,7 @@ dev = [
     "pytest-cookies>=0.7.0",
     "pytest-cov>=7.1.0",
     "cruft[pyproject]>=2.16.0",# Automated Cookiecutter template synchronization
+    "ipykernel>=7.3.0",
 ]
 
 #
