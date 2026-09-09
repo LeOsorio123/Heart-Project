@@ -74,6 +74,24 @@ Example to install [plotly](https://plotly.com/python/) in dev group:
 uv add --group dev plotly
 ```
 
+## Run the local model demo
+
+The Task 8 POC provides a Streamlit interface that loads the persisted Random Forest pipeline,
+validates one patient record and displays the predicted class and positive-class probability.
+
+From the project root, install the locked dependencies and start the application:
+
+```bash
+uv sync
+uv run streamlit run app.py
+```
+
+Open the local URL shown by Streamlit, usually <http://localhost:8501>. In GitHub Codespaces,
+open the forwarded port `8501` from the **Ports** panel.
+
+The demo is an academic proof of concept. Its output is not a diagnosis or medical advice and
+must not be used to make clinical decisions.
+
 ## 🗃️ Project structure
 
 - [Data structure]
