@@ -15,10 +15,13 @@ from pipelines.feature_pipeline.feature_pipeline import (
     run_feature_pipeline,
 )
 
+EXPECTED_RAW_ROWS = 4
+EXPECTED_FEATURE_ROWS = 2
+
 
 def _raw_rows() -> list[dict[str, object]]:
     """Return representative raw rows, including a duplicate and an unlabeled row."""
-    first = {
+    first: dict[str, object] = {
         "age": "63",
         "sex": "Male",
         "chest_pain": "typical",
@@ -34,7 +37,7 @@ def _raw_rows() -> list[dict[str, object]]:
         "thal": "fixed",
         "disease": "0",
     }
-    second = {
+    second: dict[str, object] = {
         "age": "67",
         "sex": "Male",
         "chest_pain": "asymptomatic",
@@ -50,7 +53,7 @@ def _raw_rows() -> list[dict[str, object]]:
         "thal": "normal",
         "disease": "1",
     }
-    unlabeled = {**second, "age": "55", "disease": ""}
+    unlabeled: dict[str, object] = {**second, "age": "55", "disease": ""}
     return [first, first.copy(), second, unlabeled]
 
 
@@ -91,7 +94,7 @@ def test_build_feature_table_removes_unusable_rows_and_derives_features() -> Non
 
     features = build_feature_table(normalized)
 
-    assert len(features) == 2
+    assert len(features) == EXPECTED_FEATURE_ROWS
     assert features["disease"].tolist() == [0, 1]
     assert features.loc[0, "age_squared"] == pytest.approx(63**2)
     assert features.loc[1, "chest_pain_exang"] == "asymptomatic__yes"
@@ -117,10 +120,10 @@ def test_run_feature_pipeline_persists_a_reusable_parquet(tmp_path: Path) -> Non
     result = run_feature_pipeline(input_path, output_path)
     persisted = pd.read_parquet(output_path)
 
-    assert result.input_rows == 4
+    assert result.input_rows == EXPECTED_RAW_ROWS
     assert result.duplicate_rows_removed == 1
     assert result.unlabeled_rows_removed == 1
-    assert result.output_rows == 2
+    assert result.output_rows == EXPECTED_FEATURE_ROWS
     assert result.output_columns == len(EXPECTED_COLUMNS) + len(
         HeartFeatureEngineer.derived_features
     )

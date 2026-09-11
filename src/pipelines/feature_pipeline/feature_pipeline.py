@@ -84,9 +84,9 @@ def normalize_raw_schema(data: pd.DataFrame) -> pd.DataFrame:
     for column in ("age", "rest_bp", "chol", "max_hr"):
         normalized[column] = pd.to_numeric(normalized[column], errors="coerce").astype("Int16")
 
-    normalized["old_peak"] = pd.to_numeric(
-        normalized["old_peak"], errors="coerce"
-    ).astype("Float64")
+    normalized["old_peak"] = pd.to_numeric(normalized["old_peak"], errors="coerce").astype(
+        "Float64"
+    )
 
     for column, domain in {"slope": (1, 2, 3), "ca": (0, 1, 2, 3)}.items():
         parsed = pd.to_numeric(normalized[column], errors="coerce")
