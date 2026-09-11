@@ -48,25 +48,35 @@ def render_prediction(patient_data: dict[str, object]) -> None:
     """Generate and render one prediction."""
     try:
         result = predict_patient(get_pipeline(), patient_data)
-    except (FileNotFoundError, ValueError) as error:
+    except (FileNotFoundError, TypeError, ValueError) as error:
         st.error(f"No fue posible generar la predicción: {error}")
         return
 
     st.subheader("Resultado del modelo")
     if result.has_disease_pattern:
-        st.warning("El modelo identifica un patrón compatible con la clase positiva.")
+        st.error("Predicción del modelo: posible presencia de enfermedad cardiaca.")
+        st.write(
+            "La probabilidad estimada alcanzó el umbral utilizado por el modelo para identificar "
+            "la presencia de enfermedad cardiaca."
+        )
     else:
-        st.success("El modelo identifica un patrón compatible con la clase negativa.")
+        st.success("Predicción del modelo: no se identifica enfermedad cardiaca.")
+        st.write(
+            "La probabilidad estimada no alcanzó el umbral utilizado por el modelo para "
+            "identificar la presencia de enfermedad cardiaca."
+        )
 
-    probability_column, threshold_column = st.columns(2)
-    probability_column.metric(
-        "Probabilidad estimada de clase positiva",
+    st.metric(
+        "Probabilidad estimada de enfermedad cardiaca",
         f"{result.disease_probability:.1%}",
     )
-    threshold_column.metric("Umbral utilizado", f"{result.threshold:.0%}")
     st.progress(result.disease_probability)
+    st.caption(
+        "Esta es una estimación estadística del modelo y no confirma ni descarta un diagnóstico."
+    )
 
-    with st.expander("Ver datos enviados al modelo"):
+    with st.expander("Ver detalles técnicos y datos enviados"):
+        st.write(f"**Umbral de decisión:** {result.threshold:.0%}")
         st.json(patient_data)
 
 
@@ -83,6 +93,12 @@ def main() -> None:
         "Esta aplicación local carga el pipeline **Random Forest** seleccionado en la Tarea 6 "
         "y permite comprobar que recibe datos y genera una predicción reproducible."
     )
+    st.info(
+        "**Audiencia prevista:** personal médico, clínico o técnico capacitado que diligencia "
+        "los campos a partir de resultados de exámenes ya realizados. Los hallazgos de ECG, "
+        "segmento ST, fluoroscopia y thal no deben ser interpretados o completados directamente "
+        "por el paciente."
+    )
 
     with st.sidebar:
         st.header("Información del modelo")
@@ -91,7 +107,7 @@ def main() -> None:
         st.write("**Umbral de demostración:** 0,50")
         st.caption("POC académico · No utilizar para decisiones clínicas.")
 
-    st.subheader("Datos de entrada")
+    st.subheader("Datos clínicos del paciente")
     st.caption(
         "Los límites corresponden a los rangos observados en el conjunto de datos del proyecto."
     )
@@ -111,6 +127,7 @@ def main() -> None:
                 "Tipo de dolor torácico",
                 options=list(CHEST_PAIN_LABELS),
                 format_func=CHEST_PAIN_LABELS.get,
+                help="Seleccione la clasificación registrada durante la valoración clínica.",
             )
             rest_bp = st.number_input(
                 "Presión arterial en reposo (mm Hg)",
@@ -124,7 +141,10 @@ def main() -> None:
                 max_value=564,
                 value=241,
             )
-            fbs = st.checkbox("Glucosa en ayunas > 120 mg/dl")
+            fbs = st.checkbox(
+                "Glucosa en ayunas > 120 mg/dl",
+                help="Marque la opción cuando el examen de laboratorio supere 120 mg/dl.",
+            )
 
         with clinical:
             st.markdown("#### Resultados clínicos")
@@ -132,32 +152,44 @@ def main() -> None:
                 "ECG en reposo",
                 options=list(ECG_LABELS),
                 format_func=ECG_LABELS.get,
+                help="Seleccione el resultado consignado en el informe del ECG en reposo.",
             )
             max_hr = st.number_input(
                 "Frecuencia cardiaca máxima",
                 min_value=71,
                 max_value=202,
                 value=153,
+                help="Ingrese el valor máximo registrado durante la prueba de esfuerzo.",
             )
-            exang = st.checkbox("Angina inducida por ejercicio")
+            exang = st.checkbox(
+                "Angina inducida por ejercicio",
+                help="Marque la opción si fue reportada durante la prueba de esfuerzo.",
+            )
             old_peak = st.number_input(
-                "Depresión ST inducida por ejercicio",
+                "Depresión del segmento ST (oldpeak)",
                 min_value=0.0,
                 max_value=6.2,
                 value=0.8,
                 step=0.1,
+                help="Transcriba el valor oldpeak reportado en la prueba de esfuerzo.",
             )
             slope = st.selectbox(
-                "Pendiente del segmento ST",
+                "Pendiente del segmento ST en esfuerzo",
                 options=list(SLOPE_LABELS),
                 index=1,
                 format_func=SLOPE_LABELS.get,
+                help="Seleccione la pendiente registrada en el informe de la prueba de esfuerzo.",
             )
-            ca = st.selectbox("Número de vasos coloreados por fluoroscopia", options=[0, 1, 2, 3])
+            ca = st.selectbox(
+                "Número de vasos principales observados por fluoroscopia",
+                options=[0, 1, 2, 3],
+                help="Transcriba el número de vasos coloreados reportado en el examen.",
+            )
             thal = st.selectbox(
-                "Resultado de thal",
+                "Resultado de la prueba de perfusión cardiaca (thal)",
                 options=list(THAL_LABELS),
                 format_func=THAL_LABELS.get,
+                help="Seleccione el resultado consignado en el informe del estudio thal.",
             )
 
         submitted = st.form_submit_button("Generar predicción", type="primary")

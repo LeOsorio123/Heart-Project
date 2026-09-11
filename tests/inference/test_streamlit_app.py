@@ -32,6 +32,7 @@ def test_streamlit_app_generates_a_prediction() -> None:
     app.button[0].click().run(timeout=30)
 
     assert not app.exception
-    assert len(app.success) + len(app.warning) >= 1
-    assert app.metric[0].label == "Probabilidad estimada de clase positiva"
-    assert app.metric[1].value == "50%"
+    assert len(app.success) + len(app.error) >= 1
+    result_message = app.success[0].value if app.success else app.error[0].value
+    assert "enfermedad cardiaca" in result_message
+    assert app.metric[0].label == "Probabilidad estimada de enfermedad cardiaca"
