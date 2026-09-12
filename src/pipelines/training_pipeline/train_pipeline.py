@@ -34,6 +34,11 @@ if str(SRC_DIR) not in sys.path:
 
 from heart_project.prediction import FEATURE_COLUMNS  # noqa: E402
 from heart_project.transformers import HeartFeatureEngineer  # noqa: E402
+from pipelines.training_pipeline.split_validation import (  # noqa: E402
+    SplitValidationConfig,
+    TrainTestValidationReport,
+    validate_train_test_split,
+)
 
 TARGET = "disease"
 POSITIVE_CLASS = 1
@@ -65,6 +70,7 @@ NOMINAL_FEATURES = (
     "thal",
     "chest_pain_exang",
 )
+CATEGORICAL_SPLIT_FEATURES = (*BINARY_FEATURES, *ORDINAL_FEATURES, *NOMINAL_FEATURES)
 MODEL_FEATURES = (
     *NUMERIC_FEATURES,
     *BINARY_FEATURES,
@@ -96,6 +102,7 @@ class TrainingPipelineResult:
     train_rows: int
     test_rows: int
     metrics: dict[str, object]
+    split_validation: dict[str, object]
     model_path: Path
     metrics_path: Path
 
@@ -254,6 +261,7 @@ def evaluate_classifier(
 def build_evaluation_report(
     split: DataSplit,
     metrics: dict[str, object],
+    split_validation: TrainTestValidationReport,
     *,
     random_state: int,
     test_size: float,
@@ -278,6 +286,7 @@ def build_evaluation_report(
             "train_positive_rate": float(split.y_train.mean()),
             "test_positive_rate": float(split.y_test.mean()),
         },
+        "split_validation": split_validation.to_dict(),
         "metrics": metrics,
     }
 
@@ -313,12 +322,22 @@ def run_training_pipeline(
         test_size=test_size,
         random_state=random_state,
     )
+    split_validation = validate_train_test_split(
+        split,
+        SplitValidationConfig(
+            expected_features=MODEL_FEATURES,
+            numeric_features=NUMERIC_FEATURES,
+            categorical_features=CATEGORICAL_SPLIT_FEATURES,
+            expected_test_size=test_size,
+        ),
+    )
     pipeline = build_training_pipeline(random_state=random_state)
     pipeline.fit(split.X_train, split.y_train)
     metrics = evaluate_classifier(pipeline, split.X_test, split.y_test)
     report = build_evaluation_report(
         split,
         metrics,
+        split_validation,
         random_state=random_state,
         test_size=test_size,
     )
@@ -329,6 +348,7 @@ def run_training_pipeline(
         train_rows=len(split.X_train),
         test_rows=len(split.X_test),
         metrics=metrics,
+        split_validation=split_validation.to_dict(),
         model_path=model_path,
         metrics_path=metrics_path,
     )
@@ -364,6 +384,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     roc_auc = cast(float, result.metrics["roc_auc"])
     print(f"- Recall: {recall:.3f}")
     print(f"- ROC AUC: {roc_auc:.3f}")
+    print(f"- Validación train/test: {result.split_validation['status']}")
+    split_warnings = cast(list[str], result.split_validation["warnings"])
+    if split_warnings:
+        print(f"- Advertencias de distribución: {len(split_warnings)}")
     print(f"- Modelo generado: {result.model_path}")
     print(f"- Métricas generadas: {result.metrics_path}")
     return 0
