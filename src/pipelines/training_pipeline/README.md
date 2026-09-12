@@ -6,15 +6,21 @@ Este pipeline automatiza el entrenamiento inicial del modelo de enfermedad cardi
 2. Verifica el esquema, la presencia del target y las clases disponibles.
 3. Realiza una separación train/test estratificada, reproducible y sin ajustar transformaciones
    antes de la división.
-4. Ajusta la imputación, el escalado y el encoding únicamente con los datos de entrenamiento.
-5. Entrena el Random Forest seleccionado en el POC: 250 árboles, `min_samples_leaf=3`, clases
+4. Valida la separación antes de entrenar: esquema, tamaños, índices compartidos, muestras
+   duplicadas, etiquetas y categorías nuevas, además de drift numérico, categórico y del target.
+5. Ajusta la imputación, el escalado y el encoding únicamente con los datos de entrenamiento.
+6. Entrena el Random Forest seleccionado en el POC: 250 árboles, `min_samples_leaf=3`, clases
    balanceadas y semilla 42.
-6. Evalúa accuracy, recall, especificidad, precisión, F1, balanced accuracy, ROC AUC y matriz de
+7. Evalúa accuracy, recall, especificidad, precisión, F1, balanced accuracy, ROC AUC y matriz de
    confusión. Recall es la métrica prioritaria por el impacto de los falsos negativos.
-7. Guarda el pipeline completo y un reporte JSON reproducible.
+8. Guarda el pipeline completo y un reporte JSON reproducible que incluye el resultado de cada
+   check del split.
 
-Los checks avanzados de representatividad y fuga de información del split se incorporan en la
-Tarea 4. La validación cruzada y el análisis de generalización corresponden a la Tarea 5.
+Los fallos críticos de integridad detienen el entrenamiento mediante
+`TrainTestValidationError`. Las diferencias de distribución se conservan como advertencias para
+su revisión porque no prueban por sí solas una fuga de información. Los umbrales predeterminados
+son 0.02 para la proporción de test, 0.05 para la tasa positiva y 0.20 para KS y distancia de
+variación total. La validación cruzada y el análisis de generalización corresponden a la Tarea 5.
 
 ## Ejecución
 
