@@ -7,15 +7,20 @@ import pytest
 
 from pipelines.feature_pipeline.feature_pipeline import (
     EXPECTED_COLUMNS,
+    MAX_MISSING_PERCENTAGE,
+    DataValidationError,
     HeartFeatureEngineer,
     build_feature_table,
     load_raw_data,
     main,
     normalize_raw_schema,
     run_feature_pipeline,
+    validate_feature_table,
+    validate_normalized_data,
 )
 
-EXPECTED_RAW_ROWS = 4
+EXPECTED_RAW_ROWS = 12
+EXPECTED_DUPLICATE_ROWS = 9
 EXPECTED_FEATURE_ROWS = 2
 
 
@@ -59,7 +64,10 @@ def _raw_rows() -> list[dict[str, object]]:
 
 def _write_raw_csv(path: Path) -> None:
     """Create a small CSV source used by the tests."""
-    pd.DataFrame(_raw_rows(), columns=EXPECTED_COLUMNS).to_csv(path, index=False)
+    base_rows = _raw_rows()
+    rows = [base_rows[0].copy() for _ in range(10)]
+    rows.extend((base_rows[2], base_rows[3]))
+    pd.DataFrame(rows, columns=EXPECTED_COLUMNS).to_csv(path, index=False)
 
 
 def test_load_raw_data_trims_text_and_marks_empty_values(tmp_path: Path) -> None:
@@ -70,7 +78,7 @@ def test_load_raw_data_trims_text_and_marks_empty_values(tmp_path: Path) -> None
     loaded = load_raw_data(input_path)
 
     assert loaded.loc[0, "rest_ecg"] == "left ventricular hypertrophy"
-    assert pd.isna(loaded.loc[3, "disease"])
+    assert pd.isna(loaded.iloc[-1]["disease"])
 
 
 def test_load_raw_data_rejects_missing_file(tmp_path: Path) -> None:
@@ -111,6 +119,74 @@ def test_build_feature_table_rejects_data_without_valid_target() -> None:
         build_feature_table(normalized)
 
 
+def test_validate_normalized_data_accepts_the_documented_contract() -> None:
+    """A normalized dataset that follows every rule should pass without errors."""
+    valid_rows = _raw_rows()[:3]
+    raw_data = pd.DataFrame(valid_rows, columns=EXPECTED_COLUMNS).astype("string")
+    trimmed = raw_data.apply(lambda column: column.str.strip())
+    normalized = normalize_raw_schema(trimmed.replace("", pd.NA))
+
+    validate_normalized_data(normalized)
+
+
+def test_validate_normalized_data_rejects_wrong_types_and_categories() -> None:
+    """Type and category failures should identify the affected columns."""
+    raw_data = pd.DataFrame(_raw_rows(), columns=EXPECTED_COLUMNS).astype("string")
+    invalid = normalize_raw_schema(raw_data.replace("", pd.NA))
+    invalid["age"] = invalid["age"].astype("string")
+    invalid["sex"] = invalid["sex"].astype("object")
+    invalid.loc[0, "sex"] = "Unknown"
+
+    with pytest.raises(DataValidationError) as error:
+        validate_normalized_data(invalid)
+
+    assert "age: se esperaba un tipo entero" in str(error.value)
+    assert "sex: se esperaba un tipo categórico" in str(error.value)
+    assert "sex: 1 registro(s) fuera de las categorías" in str(error.value)
+
+
+def test_validate_normalized_data_rejects_ranges_and_excessive_missingness() -> None:
+    """Clinical ranges and maximum missing percentages should be enforced."""
+    rows = [_raw_rows()[0].copy() for _ in range(20)]
+    raw_data = pd.DataFrame(rows, columns=EXPECTED_COLUMNS).astype("string")
+    normalized = normalize_raw_schema(raw_data)
+    normalized.loc[0, "rest_bp"] = 400
+    missing_rows = int(len(normalized) * MAX_MISSING_PERCENTAGE / 100) + 1
+    normalized.loc[: missing_rows - 1, "chol"] = pd.NA
+
+    with pytest.raises(DataValidationError) as error:
+        validate_normalized_data(normalized)
+
+    assert "rest_bp: 1 registro(s) fuera del rango" in str(error.value)
+    assert "chol:" in str(error.value)
+    assert "máximo permitido" in str(error.value)
+
+
+def test_validate_feature_table_rejects_broken_integrity() -> None:
+    """Derived attributes must remain consistent with the fields that generate them."""
+    raw_data = pd.DataFrame(_raw_rows(), columns=EXPECTED_COLUMNS).astype("string")
+    normalized = normalize_raw_schema(raw_data.replace("", pd.NA))
+    features = build_feature_table(normalized)
+    features.loc[0, "age_squared"] = -1
+
+    with pytest.raises(DataValidationError, match="age_squared"):
+        validate_feature_table(features)
+
+
+def test_invalid_data_does_not_create_a_feature_file(tmp_path: Path) -> None:
+    """The pipeline should stop before persistence when source validation fails."""
+    input_path = tmp_path / "invalid_heart.csv"
+    output_path = tmp_path / "features.parquet"
+    rows = [_raw_rows()[0].copy() for _ in range(10)]
+    rows[0]["age"] = "250"
+    pd.DataFrame(rows, columns=EXPECTED_COLUMNS).to_csv(input_path, index=False)
+
+    with pytest.raises(DataValidationError, match="age"):
+        run_feature_pipeline(input_path, output_path)
+
+    assert not output_path.exists()
+
+
 def test_run_feature_pipeline_persists_a_reusable_parquet(tmp_path: Path) -> None:
     """The orchestrator should write and verify the expected feature table."""
     input_path = tmp_path / "heart.csv"
@@ -121,7 +197,7 @@ def test_run_feature_pipeline_persists_a_reusable_parquet(tmp_path: Path) -> Non
     persisted = pd.read_parquet(output_path)
 
     assert result.input_rows == EXPECTED_RAW_ROWS
-    assert result.duplicate_rows_removed == 1
+    assert result.duplicate_rows_removed == EXPECTED_DUPLICATE_ROWS
     assert result.unlabeled_rows_removed == 1
     assert result.output_rows == EXPECTED_FEATURE_ROWS
     assert result.output_columns == len(EXPECTED_COLUMNS) + len(
