@@ -7,7 +7,6 @@ import joblib
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.pipeline import Pipeline
 
 from pipelines.training_pipeline.train_pipeline import (
     EXPECTED_COLUMNS,
