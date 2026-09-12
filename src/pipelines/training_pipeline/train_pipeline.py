@@ -6,6 +6,7 @@ import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import joblib
 import numpy as np
@@ -41,6 +42,7 @@ RANDOM_STATE = 42
 TEST_SIZE = 0.20
 N_ESTIMATORS = 250
 MIN_SAMPLES_LEAF = 3
+MIN_CLASS_ROWS_FOR_SPLIT = 2
 PARALLEL_JOBS = 1
 
 NUMERIC_FEATURES = (
@@ -72,12 +74,8 @@ MODEL_FEATURES = (
 EXPECTED_COLUMNS = (*FEATURE_COLUMNS, *HeartFeatureEngineer.derived_features, TARGET)
 
 DEFAULT_INPUT_PATH = PROJECT_ROOT / "data" / "04_feature" / "heart_features.parquet"
-DEFAULT_MODEL_PATH = (
-    PROJECT_ROOT / "data" / "06_models" / "heart_disease_training_pipeline.joblib"
-)
-DEFAULT_METRICS_PATH = (
-    PROJECT_ROOT / "data" / "07_model_output" / "training_metrics.json"
-)
+DEFAULT_MODEL_PATH = PROJECT_ROOT / "data" / "06_models" / "heart_disease_training_pipeline.joblib"
+DEFAULT_METRICS_PATH = PROJECT_ROOT / "data" / "07_model_output" / "training_metrics.json"
 
 
 @dataclass(frozen=True)
@@ -142,7 +140,7 @@ def split_training_data(
 
     X = feature_data.loc[:, MODEL_FEATURES]
     y = feature_data[TARGET].astype("int8")
-    if int(y.value_counts().min()) < 2:
+    if int(y.value_counts().min()) < MIN_CLASS_ROWS_FOR_SPLIT:
         raise ValueError("Cada clase necesita al menos dos registros para separar train y test.")
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -362,8 +360,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("Training Pipeline completado correctamente.")
     print(f"- Registros disponibles: {result.input_rows:,}")
     print(f"- Train: {result.train_rows:,}; test: {result.test_rows:,}")
-    print(f"- Recall: {float(result.metrics['recall']):.3f}")
-    print(f"- ROC AUC: {float(result.metrics['roc_auc']):.3f}")
+    recall = cast(float, result.metrics["recall"])
+    roc_auc = cast(float, result.metrics["roc_auc"])
+    print(f"- Recall: {recall:.3f}")
+    print(f"- ROC AUC: {roc_auc:.3f}")
     print(f"- Modelo generado: {result.model_path}")
     print(f"- Métricas generadas: {result.metrics_path}")
     return 0
