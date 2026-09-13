@@ -30,9 +30,7 @@ POSITIVE_LABEL = "Patrón compatible con enfermedad cardiaca"
 NEGATIVE_LABEL = "No se identifica patrón compatible con enfermedad cardiaca"
 BINARY_COLUMNS = ("fbs", "exang")
 
-DEFAULT_MODEL_PATH = (
-    PROJECT_ROOT / "data" / "06_models" / "heart_disease_training_pipeline.joblib"
-)
+DEFAULT_MODEL_PATH = PROJECT_ROOT / "data" / "06_models" / "heart_disease_training_pipeline.joblib"
 DEFAULT_INPUT_PATH = PROJECT_ROOT / "data" / "05_model_input" / "heart_prediction_input.csv"
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "data" / "07_model_output" / "heart_predictions.csv"
 
