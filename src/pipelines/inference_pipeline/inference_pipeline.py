@@ -133,7 +133,7 @@ def normalize_inference_data(data: pd.DataFrame) -> pd.DataFrame:
     _normalize_binary_columns(normalized)
 
     for column, valid_values in CATEGORY_VALUES.items():
-        values = normalized[column].astype("string")
+        values = normalized[column].astype("string").str.strip()
         invalid = values.notna() & ~values.isin(valid_values)
         if invalid.any():
             rows = [int(index) for index in normalized.index[invalid]]

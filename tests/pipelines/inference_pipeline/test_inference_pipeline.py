@@ -164,6 +164,16 @@ def test_custom_threshold_changes_the_generated_class() -> None:
     assert set(predictions["prediction_label"]) == {NEGATIVE_LABEL}
 
 
+def test_category_whitespace_is_removed_before_validation() -> None:
+    """Incidental spaces from a CSV should not invalidate a known category."""
+    data = _input_data()
+    data.loc[0, "rest_ecg"] = "left ventricular hypertrophy "
+
+    normalized = normalize_inference_data(data)
+
+    assert normalized.loc[0, "rest_ecg"] == "left ventricular hypertrophy"
+
+
 @pytest.mark.parametrize(
     ("invalid_data", "message"),
     [
