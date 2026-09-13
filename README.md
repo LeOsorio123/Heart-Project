@@ -80,6 +80,8 @@ La aplicación Streamlit carga el pipeline Random Forest persistido, valida un r
 muestra la clasificación junto con la probabilidad estimada de enfermedad cardiaca. Está dirigida
 a personal médico, clínico o técnico capacitado y tiene fines exclusivamente académicos.
 
+**Aplicación publicada:** [heart-disease-leosorio123.streamlit.app](https://heart-disease-leosorio123.streamlit.app/)
+
 Las instrucciones de uso, ejecución y despliegue se encuentran en
 [`docs/streamlit-online.md`](docs/streamlit-online.md).
 
