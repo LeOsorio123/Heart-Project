@@ -35,6 +35,7 @@ if str(SRC_DIR) not in sys.path:
 from heart_project.prediction import FEATURE_COLUMNS  # noqa: E402
 from heart_project.transformers import HeartFeatureEngineer  # noqa: E402
 from pipelines.training_pipeline.model_validation import (  # noqa: E402
+    ModelMetricSets,
     ModelValidationConfig,
     ModelValidationReport,
     validate_model,
@@ -354,8 +355,7 @@ def run_training_pipeline(
         pipeline,
         split.X_train,
         split.y_train,
-        train_metrics,
-        metrics,
+        ModelMetricSets(train=train_metrics, test=metrics),
         ModelValidationConfig(random_state=random_state),
     )
     report = build_evaluation_report(

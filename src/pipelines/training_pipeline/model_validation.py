@@ -1,6 +1,7 @@
 """Validate classifier performance and generalization without using the test set."""
 
 from dataclasses import dataclass
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -55,6 +56,14 @@ class ModelValidationReport:
             "warnings": list(self.warnings),
             "recommendations": list(self.recommendations),
         }
+
+
+@dataclass(frozen=True)
+class ModelMetricSets:
+    """Train and test metrics used to compare model generalization."""
+
+    train: dict[str, object]
+    test: dict[str, object]
 
 
 def _validate_config(config: ModelValidationConfig) -> None:
@@ -134,9 +143,9 @@ def _comparison_table(
         cv_summary = cv_metrics[metric_name]
         if not isinstance(cv_summary, dict):
             raise TypeError(f"El resumen de {metric_name} tiene un formato inválido.")
-        train_value = float(train_metrics[metric_name])
+        train_value = float(cast(float, train_metrics[metric_name]))
         cv_value = float(cv_summary["mean"])
-        test_value = float(test_metrics[metric_name])
+        test_value = float(cast(float, test_metrics[metric_name]))
         comparison[metric_name] = {
             "train": train_value,
             "cv_mean": cv_value,
@@ -212,15 +221,14 @@ def validate_model(
     pipeline: Pipeline,
     X_train: pd.DataFrame,
     y_train: pd.Series,
-    train_metrics: dict[str, object],
-    test_metrics: dict[str, object],
+    metric_sets: ModelMetricSets,
     config: ModelValidationConfig,
 ) -> ModelValidationReport:
     """Run reproducible cross-validation and analyze model generalization."""
     cross_validation = run_cross_validation(pipeline, X_train, y_train, config)
     return analyze_generalization(
-        train_metrics,
+        metric_sets.train,
         cross_validation,
-        test_metrics,
+        metric_sets.test,
         config,
     )
