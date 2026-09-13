@@ -34,6 +34,11 @@ if str(SRC_DIR) not in sys.path:
 
 from heart_project.prediction import FEATURE_COLUMNS  # noqa: E402
 from heart_project.transformers import HeartFeatureEngineer  # noqa: E402
+from pipelines.training_pipeline.model_validation import (  # noqa: E402
+    ModelValidationConfig,
+    ModelValidationReport,
+    validate_model,
+)
 from pipelines.training_pipeline.split_validation import (  # noqa: E402
     SplitValidationConfig,
     TrainTestValidationReport,
@@ -103,8 +108,17 @@ class TrainingPipelineResult:
     test_rows: int
     metrics: dict[str, object]
     split_validation: dict[str, object]
+    model_validation: dict[str, object]
     model_path: Path
     metrics_path: Path
+
+
+@dataclass(frozen=True)
+class ValidationReports:
+    """Validation evidence included in the persisted evaluation report."""
+
+    split: TrainTestValidationReport
+    model: ModelValidationReport
 
 
 def load_feature_data(input_path: Path) -> pd.DataFrame:
@@ -261,7 +275,7 @@ def evaluate_classifier(
 def build_evaluation_report(
     split: DataSplit,
     metrics: dict[str, object],
-    split_validation: TrainTestValidationReport,
+    validations: ValidationReports,
     *,
     random_state: int,
     test_size: float,
@@ -286,7 +300,8 @@ def build_evaluation_report(
             "train_positive_rate": float(split.y_train.mean()),
             "test_positive_rate": float(split.y_test.mean()),
         },
-        "split_validation": split_validation.to_dict(),
+        "split_validation": validations.split.to_dict(),
+        "model_validation": validations.model.to_dict(),
         "metrics": metrics,
     }
 
@@ -333,11 +348,20 @@ def run_training_pipeline(
     )
     pipeline = build_training_pipeline(random_state=random_state)
     pipeline.fit(split.X_train, split.y_train)
+    train_metrics = evaluate_classifier(pipeline, split.X_train, split.y_train)
     metrics = evaluate_classifier(pipeline, split.X_test, split.y_test)
+    model_validation = validate_model(
+        pipeline,
+        split.X_train,
+        split.y_train,
+        train_metrics,
+        metrics,
+        ModelValidationConfig(random_state=random_state),
+    )
     report = build_evaluation_report(
         split,
         metrics,
-        split_validation,
+        ValidationReports(split=split_validation, model=model_validation),
         random_state=random_state,
         test_size=test_size,
     )
@@ -349,6 +373,7 @@ def run_training_pipeline(
         test_rows=len(split.X_test),
         metrics=metrics,
         split_validation=split_validation.to_dict(),
+        model_validation=model_validation.to_dict(),
         model_path=model_path,
         metrics_path=metrics_path,
     )
@@ -388,6 +413,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     split_warnings = cast(list[str], result.split_validation["warnings"])
     if split_warnings:
         print(f"- Advertencias de distribución: {len(split_warnings)}")
+    print(f"- Validación del modelo: {result.model_validation['status']}")
+    comparison = cast(dict[str, dict[str, float]], result.model_validation["comparison"])
+    recall_comparison = comparison["recall"]
+    print(
+        "- Recall train/CV/test: "
+        f"{recall_comparison['train']:.3f} / "
+        f"{recall_comparison['cv_mean']:.3f} ± {recall_comparison['cv_std']:.3f} / "
+        f"{recall_comparison['test']:.3f}"
+    )
+    print(f"- Diagnóstico de generalización: {result.model_validation['diagnosis']}")
+    model_warnings = cast(list[str], result.model_validation["warnings"])
+    if model_warnings:
+        print(f"- Advertencias del modelo: {len(model_warnings)}")
     print(f"- Modelo generado: {result.model_path}")
     print(f"- Métricas generadas: {result.metrics_path}")
     return 0

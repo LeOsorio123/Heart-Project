@@ -171,8 +171,10 @@ def test_run_training_pipeline_generates_model_and_metrics(tmp_path: Path) -> No
     assert result.metrics_path.is_file()
     assert result.metrics["primary_metric"] == "recall"
     assert result.split_validation["status"] in {"passed", "passed_with_warnings"}
+    assert result.model_validation["status"] in {"passed", "passed_with_warnings"}
     report = json.loads(metrics_path.read_text(encoding="utf-8"))
     assert report["split_validation"] == result.split_validation
+    assert report["model_validation"] == result.model_validation
 
 
 def test_main_accepts_custom_paths(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
