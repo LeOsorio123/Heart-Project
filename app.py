@@ -1,4 +1,4 @@
-"""Streamlit POC for the selected heart disease model."""
+"""Online Streamlit demo for the selected heart disease model."""
 
 import sys
 from pathlib import Path
@@ -83,15 +83,15 @@ def render_prediction(patient_data: dict[str, object]) -> None:
 def main() -> None:
     """Render the Streamlit application."""
     st.set_page_config(
-        page_title="Demo POC · Riesgo cardiaco",
+        page_title="Demo online · Enfermedad cardiaca",
         page_icon="❤️",
         layout="wide",
     )
 
-    st.title("❤️ Demo POC del modelo de enfermedad cardiaca")
+    st.title("❤️ Demo online del modelo de enfermedad cardiaca")
     st.markdown(
-        "Esta aplicación local carga el pipeline **Random Forest** seleccionado en la Tarea 6 "
-        "y permite comprobar que recibe datos y genera una predicción reproducible."
+        "Esta aplicación carga el pipeline **Random Forest** seleccionado durante el proyecto y "
+        "permite obtener una predicción online reproducible para un registro clínico."
     )
     st.info(
         "**Audiencia prevista:** personal médico, clínico o técnico capacitado que diligencia "
@@ -105,7 +105,8 @@ def main() -> None:
         st.write("**Algoritmo:** Random Forest")
         st.write("**Métrica prioritaria:** sensibilidad (recall)")
         st.write("**Umbral de demostración:** 0,50")
-        st.caption("POC académico · No utilizar para decisiones clínicas.")
+        st.write("**Modalidad:** predicción online individual")
+        st.caption("Demo académica · No utilizar para decisiones clínicas.")
 
     st.subheader("Datos clínicos del paciente")
     st.caption(

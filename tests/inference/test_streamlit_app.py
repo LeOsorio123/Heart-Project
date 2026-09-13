@@ -1,4 +1,4 @@
-"""Smoke tests for the local Streamlit POC."""
+"""Smoke tests for the online Streamlit demo."""
 
 from pathlib import Path
 
@@ -15,14 +15,16 @@ def load_app() -> AppTest:
 
 
 def test_streamlit_app_starts_without_exceptions() -> None:
-    """The POC should render its form and disclaimer."""
+    """The online demo should render its form and clinical guidance."""
     app = load_app()
 
     assert not app.exception
-    assert app.title[0].value == "❤️ Demo POC del modelo de enfermedad cardiaca"
+    assert app.title[0].value == "❤️ Demo online del modelo de enfermedad cardiaca"
     assert app.button[0].label == "Generar predicción"
     assert len(app.number_input) == EXPECTED_NUMBER_INPUTS
     assert len(app.selectbox) == EXPECTED_SELECT_INPUTS
+    assert "personal médico" in app.info[0].value
+    assert "no constituye diagnóstico" in app.info[-1].value
 
 
 def test_streamlit_app_generates_a_prediction() -> None:

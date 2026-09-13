@@ -74,10 +74,18 @@ Example to install [plotly](https://plotly.com/python/) in dev group:
 uv add --group dev plotly
 ```
 
-## Run the local model demo
+## Demo online del modelo
 
-The Task 8 POC provides a Streamlit interface that loads the persisted Random Forest pipeline,
-validates one patient record and displays the predicted class and positive-class probability.
+La aplicación Streamlit carga el pipeline Random Forest persistido, valida un registro clínico y
+muestra la clasificación junto con la probabilidad estimada de enfermedad cardiaca. Está dirigida
+a personal médico, clínico o técnico capacitado y tiene fines exclusivamente académicos.
+
+**Aplicación publicada:** [heart-disease-leosorio123.streamlit.app](https://heart-disease-leosorio123.streamlit.app/)
+
+Las instrucciones de uso, ejecución y despliegue se encuentran en
+[`docs/streamlit-online.md`](docs/streamlit-online.md).
+
+### Ejecución local
 
 From the project root, install the locked dependencies and start the application:
 
@@ -89,8 +97,8 @@ uv run streamlit run app.py
 Open the local URL shown by Streamlit, usually <http://localhost:8501>. In GitHub Codespaces,
 open the forwarded port `8501` from the **Ports** panel.
 
-The demo is an academic proof of concept. Its output is not a diagnosis or medical advice and
-must not be used to make clinical decisions.
+El resultado no es un diagnóstico ni una recomendación médica y no debe utilizarse para tomar
+decisiones clínicas.
 
 ## 🗃️ Project structure
 
