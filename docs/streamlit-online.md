@@ -4,6 +4,10 @@ La aplicación permite que personal médico, clínico o técnico capacitado dili
 obtenga una predicción online del modelo de enfermedad cardiaca. Es una demostración académica y
 su resultado no constituye un diagnóstico ni reemplaza la valoración profesional.
 
+## Aplicación publicada
+
+[Abrir la demo online](https://heart-disease-leosorio123.streamlit.app/)
+
 ## Uso de la aplicación
 
 1. Abra la URL pública de la aplicación.
@@ -49,5 +53,5 @@ uv run pytest --cov
 uv run pre-commit run --all-files
 ```
 
-La URL pública y la evidencia visual se incorporan al repositorio después de completar el primer
-despliegue.
+El funcionamiento online se evidencia mediante la URL pública, las pruebas automatizadas de la
+interfaz y la captura incluida en el Pull Request correspondiente.
