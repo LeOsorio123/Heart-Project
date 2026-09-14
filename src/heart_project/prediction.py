@@ -142,6 +142,7 @@ def predict_patient(
         threshold=threshold,
     )
 
+
 POSITIVE_LABEL = "Patrón compatible con enfermedad cardiaca"
 NEGATIVE_LABEL = "No se identifica patrón compatible con enfermedad cardiaca"
 BINARY_COLUMNS = ("fbs", "exang")
