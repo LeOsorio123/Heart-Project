@@ -1,0 +1,3 @@
+age,sex,chest_pain,rest_bp,chol,fbs,rest_ecg,max_hr,exang,old_peak,slope,ca,thal,predicted_class,prediction_label,disease_probability,classification_threshold
+41,Male,asymptomatic,130,241,False,normal,153,False,0.8,2,0,normal,0,No se identifica patrón compatible con enfermedad cardiaca,0.212,0.5
+54,Male,nontypical,130,241,False,normal,153,False,0.8,2,0,normal,0,No se identifica patrón compatible con enfermedad cardiaca,0.173,0.5

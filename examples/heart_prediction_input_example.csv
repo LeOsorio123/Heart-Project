@@ -1,0 +1,3 @@
+age,sex,chest_pain,rest_bp,chol,fbs,rest_ecg,max_hr,exang,old_peak,slope,ca,thal
+41,Male,asymptomatic,130,241,0,normal,153,0,0.8,2,0,normal
+54,Male,nontypical,130,241,0,normal,153,0,0.8,2,0,normal

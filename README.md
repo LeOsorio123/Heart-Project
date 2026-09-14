@@ -74,16 +74,21 @@ Example to install [plotly](https://plotly.com/python/) in dev group:
 uv add --group dev plotly
 ```
 
-## Demo online del modelo
+## Aplicación Streamlit: predicción individual y batch
 
-La aplicación Streamlit carga el pipeline Random Forest persistido, valida un registro clínico y
-muestra la clasificación junto con la probabilidad estimada de enfermedad cardiaca. Está dirigida
-a personal médico, clínico o técnico capacitado y tiene fines exclusivamente académicos.
+La aplicación Streamlit carga el pipeline Random Forest persistido y permite generar predicciones
+para un registro clínico individual o para múltiples registros cargados desde un archivo CSV.
+Presenta resultados comprensibles y permite descargar las predicciones batch. Está dirigida a
+personal médico, clínico o técnico capacitado y tiene fines exclusivamente académicos.
 
 **Aplicación publicada:** [heart-disease-leosorio123.streamlit.app](https://heart-disease-leosorio123.streamlit.app/)
 
-Las instrucciones de uso, ejecución y despliegue se encuentran en
-[`docs/streamlit-online.md`](docs/streamlit-online.md).
+Las instrucciones se encuentran en:
+
+- [Predicción individual y despliegue online](docs/streamlit-online.md).
+- [Carga, validación y predicción batch](docs/streamlit-batch.md).
+- [Archivo CSV de entrada de ejemplo](examples/heart_prediction_input_example.csv).
+- [Archivo CSV de salida de ejemplo](examples/heart_predictions_example.csv).
 
 ### Ejecución local
 

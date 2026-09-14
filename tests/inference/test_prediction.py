@@ -9,10 +9,15 @@ import pytest
 from heart_project.prediction import (
     FEATURE_COLUMNS,
     PredictivePipeline,
+    build_batch_frame,
     build_patient_frame,
     load_pipeline,
+    predict_batch,
     predict_patient,
 )
+
+BATCH_ROWS = 2
+OUTPUT_COLUMNS = 4
 
 VALID_PATIENT: dict[str, object] = {
     "age": 54,
@@ -97,3 +102,52 @@ def test_persisted_pipeline_generates_a_prediction() -> None:
 
     assert result.predicted_class in {0, 1}
     assert 0.0 <= result.disease_probability <= 1.0
+
+
+def test_build_batch_frame_accepts_csv_boolean_representations() -> None:
+    """CSV values using 0/1 should be normalized before prediction."""
+    second_patient = {**VALID_PATIENT, "age": 63, "fbs": 1, "exang": "1"}
+    first_patient = {**VALID_PATIENT, "fbs": "0", "exang": False}
+    uploaded_data = pd.DataFrame([first_patient, second_patient])
+
+    frame = build_batch_frame(uploaded_data)
+
+    assert frame.shape == (BATCH_ROWS, len(FEATURE_COLUMNS))
+    assert frame.columns.tolist() == list(FEATURE_COLUMNS)
+    assert frame["fbs"].tolist() == [False, True]
+    assert frame["exang"].tolist() == [False, True]
+
+
+def test_build_batch_frame_identifies_the_invalid_csv_row() -> None:
+    """A malformed record should report its spreadsheet row number."""
+    uploaded_data = pd.DataFrame(
+        [
+            VALID_PATIENT,
+            {**VALID_PATIENT, "rest_ecg": "unknown"},
+        ]
+    )
+
+    with pytest.raises(ValueError, match="Fila 3"):
+        build_batch_frame(uploaded_data)
+
+
+def test_build_batch_frame_rejects_an_incomplete_schema() -> None:
+    """Uploaded files should contain exactly the documented predictor columns."""
+    uploaded_data = pd.DataFrame([VALID_PATIENT]).drop(columns="thal")
+
+    with pytest.raises(ValueError, match="Faltantes"):
+        build_batch_frame(uploaded_data)
+
+
+def test_predict_batch_returns_downloadable_results() -> None:
+    """Batch serving should append a class, label, probability and threshold."""
+    pipeline: PredictivePipeline = PositivePipeline()
+    uploaded_data = pd.DataFrame([VALID_PATIENT, {**VALID_PATIENT, "age": 63}])
+
+    results = predict_batch(pipeline, uploaded_data)
+
+    assert results.shape == (BATCH_ROWS, len(FEATURE_COLUMNS) + OUTPUT_COLUMNS)
+    assert results["predicted_class"].tolist() == [1, 1]
+    assert results["disease_probability"].tolist() == pytest.approx([0.8, 0.8])
+    assert results["classification_threshold"].tolist() == [0.5, 0.5]
+    assert results["prediction_label"].str.contains("enfermedad cardiaca").all()

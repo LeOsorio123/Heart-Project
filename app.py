@@ -1,8 +1,9 @@
-"""Online Streamlit demo for the selected heart disease model."""
+"""Online and batch Streamlit demo for the selected heart disease model."""
 
 import sys
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -13,10 +14,12 @@ if str(SRC_DIR) not in sys.path:
 from heart_project.prediction import (  # noqa: E402
     PredictivePipeline,
     load_pipeline,
+    predict_batch,
     predict_patient,
 )
 
 MODEL_PATH = PROJECT_DIR / "models" / "heart_disease_best_pipeline.joblib"
+EXAMPLE_INPUT_PATH = PROJECT_DIR / "examples" / "heart_prediction_input_example.csv"
 
 SEX_LABELS = {"Male": "Masculino", "Female": "Femenino"}
 CHEST_PAIN_LABELS = {
@@ -45,7 +48,7 @@ def get_pipeline() -> PredictivePipeline:
 
 
 def render_prediction(patient_data: dict[str, object]) -> None:
-    """Generate and render one prediction."""
+    """Generate and render one online prediction."""
     try:
         result = predict_patient(get_pipeline(), patient_data)
     except (FileNotFoundError, TypeError, ValueError) as error:
@@ -80,34 +83,8 @@ def render_prediction(patient_data: dict[str, object]) -> None:
         st.json(patient_data)
 
 
-def main() -> None:
-    """Render the Streamlit application."""
-    st.set_page_config(
-        page_title="Demo online · Enfermedad cardiaca",
-        page_icon="❤️",
-        layout="wide",
-    )
-
-    st.title("❤️ Demo online del modelo de enfermedad cardiaca")
-    st.markdown(
-        "Esta aplicación carga el pipeline **Random Forest** seleccionado durante el proyecto y "
-        "permite obtener una predicción online reproducible para un registro clínico."
-    )
-    st.info(
-        "**Audiencia prevista:** personal médico, clínico o técnico capacitado que diligencia "
-        "los campos a partir de resultados de exámenes ya realizados. Los hallazgos de ECG, "
-        "segmento ST, fluoroscopia y thal no deben ser interpretados o completados directamente "
-        "por el paciente."
-    )
-
-    with st.sidebar:
-        st.header("Información del modelo")
-        st.write("**Algoritmo:** Random Forest")
-        st.write("**Métrica prioritaria:** sensibilidad (recall)")
-        st.write("**Umbral de demostración:** 0,50")
-        st.write("**Modalidad:** predicción online individual")
-        st.caption("Demo académica · No utilizar para decisiones clínicas.")
-
+def render_online_tab() -> None:
+    """Render the form used for an individual online prediction."""
     st.subheader("Datos clínicos del paciente")
     st.caption(
         "Los límites corresponden a los rangos observados en el conjunto de datos del proyecto."
@@ -213,6 +190,109 @@ def main() -> None:
                 "thal": thal,
             }
         )
+
+
+def render_batch_tab() -> None:
+    """Render CSV upload, validated batch inference and result download."""
+    st.subheader("Predicción para múltiples registros")
+    st.write(
+        "Cargue un archivo CSV con las 13 variables clínicas requeridas. La aplicación validará "
+        "todos los registros antes de generar las predicciones."
+    )
+
+    if EXAMPLE_INPUT_PATH.is_file():
+        st.download_button(
+            "Descargar archivo de entrada de ejemplo",
+            data=EXAMPLE_INPUT_PATH.read_bytes(),
+            file_name=EXAMPLE_INPUT_PATH.name,
+            mime="text/csv",
+        )
+
+    uploaded_file = st.file_uploader(
+        "Cargar archivo CSV",
+        type=["csv"],
+        help="Utilice el archivo de ejemplo para conservar los nombres y valores esperados.",
+    )
+    if uploaded_file is None:
+        st.info("Cargue un archivo para habilitar la predicción en lote.")
+        return
+
+    try:
+        batch_data = pd.read_csv(uploaded_file)
+    except (OSError, UnicodeDecodeError, pd.errors.ParserError) as error:
+        st.error(f"No fue posible leer el archivo CSV: {error}")
+        return
+
+    st.caption(f"Archivo cargado: {uploaded_file.name} · {len(batch_data):,} registros")
+    st.markdown("#### Vista previa de los datos")
+    st.dataframe(batch_data.head(20), width="stretch", hide_index=True)
+
+    if not st.button("Generar predicciones en lote", type="primary"):
+        return
+
+    try:
+        predictions = predict_batch(get_pipeline(), batch_data)
+    except (FileNotFoundError, TypeError, ValueError) as error:
+        st.error(f"No fue posible procesar el archivo: {error}")
+        return
+
+    positive_predictions = int(predictions["predicted_class"].sum())
+    negative_predictions = len(predictions) - positive_predictions
+
+    st.success(f"Se procesaron correctamente {len(predictions):,} registros.")
+    total_column, positive_column, negative_column = st.columns(3)
+    total_column.metric("Registros procesados", f"{len(predictions):,}")
+    positive_column.metric("Patrón compatible", f"{positive_predictions:,}")
+    negative_column.metric("Sin patrón identificado", f"{negative_predictions:,}")
+
+    st.markdown("#### Predicciones generadas")
+    st.dataframe(predictions, width="stretch", hide_index=True)
+    st.download_button(
+        "Descargar predicciones en CSV",
+        data=predictions.to_csv(index=False).encode("utf-8"),
+        file_name="heart_predictions.csv",
+        mime="text/csv",
+        type="primary",
+    )
+    st.caption(
+        "El archivo descargado conserva las variables recibidas y agrega la clase, la "
+        "interpretación, la probabilidad estimada y el umbral utilizado."
+    )
+
+
+def main() -> None:
+    """Render the Streamlit application."""
+    st.set_page_config(
+        page_title="Demo online y batch · Enfermedad cardiaca",
+        page_icon="❤️",
+        layout="wide",
+    )
+
+    st.title("❤️ Modelo de enfermedad cardiaca: predicción online y batch")
+    st.markdown(
+        "Esta aplicación carga el pipeline **Random Forest** seleccionado durante el proyecto y "
+        "permite generar predicciones reproducibles para un registro o para un archivo completo."
+    )
+    st.info(
+        "**Audiencia prevista:** personal médico, clínico o técnico capacitado que diligencia "
+        "los campos a partir de resultados de exámenes ya realizados. Los hallazgos de ECG, "
+        "segmento ST, fluoroscopia y thal no deben ser interpretados o completados directamente "
+        "por el paciente."
+    )
+
+    with st.sidebar:
+        st.header("Información del modelo")
+        st.write("**Algoritmo:** Random Forest")
+        st.write("**Métrica prioritaria:** sensibilidad (recall)")
+        st.write("**Umbral de demostración:** 0,50")
+        st.write("**Modalidades:** predicción individual y batch")
+        st.caption("Demo académica · No utilizar para decisiones clínicas.")
+
+    online_tab, batch_tab = st.tabs(["Predicción individual", "Predicción en lote"])
+    with online_tab:
+        render_online_tab()
+    with batch_tab:
+        render_batch_tab()
 
     st.divider()
     st.info(
