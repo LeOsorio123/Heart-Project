@@ -6,6 +6,7 @@ from streamlit.testing.v1 import AppTest
 
 EXPECTED_NUMBER_INPUTS = 5
 EXPECTED_SELECT_INPUTS = 6
+EXPECTED_TABS = 2
 
 
 def load_app() -> AppTest:
@@ -23,6 +24,7 @@ def test_streamlit_app_starts_without_exceptions() -> None:
     assert app.button[0].label == "Generar predicción"
     assert len(app.number_input) == EXPECTED_NUMBER_INPUTS
     assert len(app.selectbox) == EXPECTED_SELECT_INPUTS
+    assert len(app.tabs) == EXPECTED_TABS
     assert "personal médico" in app.info[0].value
     assert "no constituye diagnóstico" in app.info[-1].value
 
