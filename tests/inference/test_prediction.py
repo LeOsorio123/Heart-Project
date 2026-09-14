@@ -103,6 +103,7 @@ def test_persisted_pipeline_generates_a_prediction() -> None:
     assert result.predicted_class in {0, 1}
     assert 0.0 <= result.disease_probability <= 1.0
 
+
 def test_build_batch_frame_accepts_csv_boolean_representations() -> None:
     """CSV values using 0/1 should be normalized before prediction."""
     second_patient = {**VALID_PATIENT, "age": 63, "fbs": 1, "exang": "1"}
