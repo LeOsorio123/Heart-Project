@@ -1,4 +1,4 @@
-"""Smoke tests for the online Streamlit demo."""
+"""Smoke tests for the online and batch Streamlit application."""
 
 from pathlib import Path
 
@@ -19,7 +19,7 @@ def test_streamlit_app_starts_without_exceptions() -> None:
     app = load_app()
 
     assert not app.exception
-    assert app.title[0].value == "❤️ Demo online del modelo de enfermedad cardiaca"
+    assert app.title[0].value == "❤️ Modelo de enfermedad cardiaca: predicción online y batch"
     assert app.button[0].label == "Generar predicción"
     assert len(app.number_input) == EXPECTED_NUMBER_INPUTS
     assert len(app.selectbox) == EXPECTED_SELECT_INPUTS
